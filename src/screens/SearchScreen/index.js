@@ -17,7 +17,7 @@ const SearchScreen = () => {
     const [searchKeyword, setSearchKeyword] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isShowingResults, setIsShowingResults] = useState(false);
-
+    const [gvSigUrl, setGvSigUrl] = useState('https://centos7.gvsigonline.com/gvsigonline');
 
     const geocode = (suggest) => {
 
@@ -40,7 +40,7 @@ const SearchScreen = () => {
     
         console.log("EL BODY DEL FETCH:  "+formBody);
     
-        return fetch("https://centos7.gvsigonline.com/gvsigonline/geocoding/find_candidate/", {
+        return fetch(gvSigUrl+"/geocoding/find_candidate/", {
           method: "POST",
           headers: {
             //"Content-Type": "application/json"
@@ -74,8 +74,8 @@ const SearchScreen = () => {
     
       const searchLocation = async (text) => {
         setSearchKeyword(text);
-        let response = await fetch(
-          "https://centos7.gvsigonline.com/gvsigonline/geocoding/search_candidates/?limit=10&q=" + text
+        let response = await fetch(gvSigUrl+
+          "/geocoding/search_candidates/?limit=10&q=" + text
         );
         let json = await response.json();
         console.log(json);
