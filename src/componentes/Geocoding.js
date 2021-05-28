@@ -1,5 +1,4 @@
 import React, {useState} from 'react';
-import SearchScreenStyles from '../../styles/SearchScreenStyles';
 
 import {
   View,
@@ -9,6 +8,7 @@ import {
   SafeAreaView,
   Alert,
   FlatList,
+  StyleSheet,
 } from 'react-native';
 
 const Geocoding = () => {
@@ -17,7 +17,7 @@ const Geocoding = () => {
   const [isShowingResults, setIsShowingResults] = useState(false);
   const [gvSigUrl, setGvSigUrl] = useState('https://localhost/gvsigonline');
 
-  const geocode = suggest => {
+  const geocode = async suggest => {
     console.log(' geocode de ' + JSON.stringify(suggest));
     // TODO: Aquí tenemos que pillar el suggest.raw y
     // obtener el idcalle, id, etc para buscar
@@ -37,7 +37,7 @@ const Geocoding = () => {
 
     console.log('EL BODY DEL FETCH:  ' + formBody);
 
-    return fetch(gvSigUrl + '/geocoding/find_candidate/', {
+    return await fetch(gvSigUrl + '/geocoding/find_candidate/', {
       method: 'POST',
       headers: {
         //"Content-Type": "application/json"
@@ -67,21 +67,32 @@ const Geocoding = () => {
 
   const lookup = async text => {
     setSearchKeyword(text);
-    let response = await fetch(
+    return await fetch(
       gvSigUrl + '/geocoding/search_candidates/?limit=10&q=' + text,
-    );
-    let json = await response.json();
-    console.log(json);
-
-    setSearchResults(json.suggestions);
-    setIsShowingResults(true);
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // "X-CSRFToken": csrftoken
+        },
+        redirect: 'follow', // manual, *follow, error
+        referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+      },
+    )
+      .then(response => response.json())
+      .then(json => {
+        console.log('Candidates: ' + JSON.stringify(json));
+        setSearchResults(json.suggestions);
+        setIsShowingResults(true);
+      })
+      .catch(err => console.error(err.message));
   };
 
   const myRenderItem = ({item, index}) => {
     return (
       <TouchableOpacity
         key={index}
-        style={SearchScreenStyles.resultItem}
+        style={Styles.resultItem}
         onPress={() => {
           geocode(item);
           setIsShowingResults(false);
@@ -93,28 +104,62 @@ const Geocoding = () => {
   };
 
   return (
-    <SafeAreaView style={SearchScreenStyles.container}>
+    <View >
       {isShowingResults && (
         <FlatList
           data={searchResults}
           renderItem={myRenderItem}
           keyExtractor={item => item.id}
-          style={SearchScreenStyles.searchResultsContainer}
+          style={Styles.searchResultsContainer}
         />
       )}
 
-      <View style={SearchScreenStyles.autocompleteContainer}>
+      <View style={Styles.autocompleteContainer}>
         <TextInput
           placeholder="Search for an address"
           returnKeyType="search"
-          style={SearchScreenStyles.searchBox}
+          style={Styles.searchBox}
           placeholderTextColor="#000"
           onChangeText={text => lookup(text)}
           value={searchKeyword}
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
+
+const Styles = StyleSheet.create({
+  autocompleteContainer: {
+    zIndex: 1,
+  },
+  searchResultsContainer: {
+    width: 340,
+    //height: 200,
+    backgroundColor: '#fff',
+    position: 'absolute',
+    top: 50,
+    zIndex: 2,
+  },
+  resultItem: {
+    width: '100%',
+    justifyContent: 'center',
+    height: 40,
+    borderBottomColor: '#ccc',
+    borderBottomWidth: 1,
+    backgroundColor: 'white',
+    paddingLeft: 15,
+  },
+  searchBox: {
+    width: 340,
+    height: 50,
+    fontSize: 18,
+    borderRadius: 8,
+    borderColor: '#aaa',
+    color: '#000',
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    paddingLeft: 15,
+  },
+});
 
 export default Geocoding;
