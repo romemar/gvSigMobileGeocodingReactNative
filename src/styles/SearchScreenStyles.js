@@ -37,6 +37,9 @@ const styles = StyleSheet.create({
       backgroundColor: 'lightblue',
       alignItems: 'center',
     },
+    map: {
+      ...StyleSheet.absoluteFillObject,
+    },
   });
 
   export default styles; 
