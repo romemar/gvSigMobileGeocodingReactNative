@@ -5,17 +5,19 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
-  SafeAreaView,
   Alert,
   FlatList,
   StyleSheet,
 } from 'react-native';
 
 const Geocoding = () => {
+  
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isShowingResults, setIsShowingResults] = useState(false);
-  const [gvSigUrl, setGvSigUrl] = useState('https://localhost/gvsigonline');
+  const [gvSigUrl, setGvSigUrl] = useState(
+    "http://10.0.2.2/gvsigonline/"
+  ); // http://10.0.2.2/ --- localhost del emulador android---
 
   const geocode = async suggest => {
     console.log(' geocode de ' + JSON.stringify(suggest));
@@ -42,7 +44,6 @@ const Geocoding = () => {
       headers: {
         //"Content-Type": "application/json"
         'Content-Type': 'application/x-www-form-urlencoded',
-        // "X-CSRFToken": csrftoken
       },
       redirect: 'follow', // manual, *follow, error
       referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
@@ -65,33 +66,29 @@ const Geocoding = () => {
       .catch(err => console.error(err.message));
   };
 
-  const lookup = async text => {
+  const lookup = async (text) => {
     setSearchKeyword(text);
-    return await fetch(
-      gvSigUrl + '/geocoding/search_candidates/?limit=10&q=' + text,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // "X-CSRFToken": csrftoken
-        },
-        redirect: 'follow', // manual, *follow, error
-        referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-      },
-    )
-      .then(response => response.json())
-      .then(json => {
-        console.log('Candidates: ' + JSON.stringify(json));
-        setSearchResults(json.suggestions);
-        setIsShowingResults(true);
-      })
-      .catch(err => console.error(err.message));
+    console.log(gvSigUrl +"/geocoding/search_candidates/?limit=10&q="+text)
+
+    if (text.length >= 3){
+
+      let response = await fetch(
+        gvSigUrl + "/geocoding/search_candidates/?limit=10&q=" + text
+      );
+  
+      let json = await response.json();
+      console.log(json);
+      let results = json.suggestions;
+      setSearchResults(results);
+      setIsShowingResults(true);
+    }
+    
   };
 
-  const myRenderItem = ({item, index}) => {
+  const myRenderItem = ({item}) => {
     return (
       <TouchableOpacity
-        key={index}
+        key={item.id}
         style={Styles.resultItem}
         onPress={() => {
           geocode(item);
@@ -104,7 +101,7 @@ const Geocoding = () => {
   };
 
   return (
-    <View >
+    <View>
       {isShowingResults && (
         <FlatList
           data={searchResults}
