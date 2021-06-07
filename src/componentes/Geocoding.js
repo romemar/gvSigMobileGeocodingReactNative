@@ -10,14 +10,18 @@ import {
   StyleSheet,
 } from 'react-native';
 
+
+
 const Geocoding = () => {
-  
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isShowingResults, setIsShowingResults] = useState(false);
-  const [gvSigUrl, setGvSigUrl] = useState(
-    "http://10.0.2.2/gvsigonline/"
-  ); // http://10.0.2.2/ --- localhost del emulador android---
+  const [gvSigUrl, setGvSigUrl] = useState('http://10.0.2.2/gvsigonline/'); // http://10.0.2.2/ --- localhost del emulador android---
+  const [proveedores, setProveedores] = useState([]);
+  const [options, setOptions] = useState({});
+
+
+  //----------función con la llamada a find_candidate
 
   const geocode = async suggest => {
     console.log(' geocode de ' + JSON.stringify(suggest));
@@ -66,26 +70,65 @@ const Geocoding = () => {
       .catch(err => console.error(err.message));
   };
 
-  const lookup = async (text) => {
+
+//-----------función con la llamada a search_candidates y get_providers_activated
+
+  const lookup = async text => {
+    const candidatos = [];
     setSearchKeyword(text);
-    console.log(gvSigUrl +"/geocoding/search_candidates/?limit=10&q="+text)
+    console.log(gvSigUrl + '/geocoding/search_candidates/?limit=10&q=' + text);
 
-    if (text.length >= 3){
+    
+    if (text.length < 3) {
+      setIsShowingResults(false);
+      setOptions({});
+    } // (cuando ya has hecho una búsqueda previa) que no aparezcan los resultados cuando el texto sea menor que 3 letras 
 
+    if (text.length >= 3) {
       let response = await fetch(
-        gvSigUrl + "/geocoding/search_candidates/?limit=10&q=" + text
+        gvSigUrl + '/geocoding/search_candidates/?limit=10&q=' + text,
       );
-  
+
       let json = await response.json();
       console.log(json);
       let results = json.suggestions;
       setSearchResults(results);
       setIsShowingResults(true);
+
+      if (results.length > 0) {
+        //llamada a la API para recoger los proveedores activos
+        let response = await fetch(
+          gvSigUrl + '/geocoding/get_providers_activated/',
+        );
+        let json = await response.json();
+        console.log('Proveedores' + JSON.stringify(json));
+        let provee = json.types;
+
+        //recogemos para cada proveedor sus candidatos de búsqueda
+        provee.map(prov => {
+          const arrayOptions = [];
+          results.map(suggest => {
+            if (suggest.category === prov) {
+              arrayOptions.push(suggest);
+            }
+          });
+          candidatos.push({
+            label: prov,
+            options: arrayOptions,
+          });
+        });
+      }
+      console.log(candidatos);
+      setOptions(candidatos);
     }
-    
   };
 
-  const myRenderItem = ({item}) => {
+  //------- funciones renderizado de candidatos ------
+  const renderTitle = title => {
+    return <Text style={Styles.categoryLabel}>{title}</Text>;
+  };
+
+  const myRenderItem = item => {
     return (
       <TouchableOpacity
         key={item.id}
@@ -100,12 +143,29 @@ const Geocoding = () => {
     );
   };
 
+  const myRender = options => {
+    console.log(options);
+    const candi = options.item.options;
+    console.log(candi);
+    return (
+      <View>
+        {renderTitle(options.item.label)}
+
+        {candi.map(item => {
+          return myRenderItem(item);
+        })}
+      </View>
+    );
+  };
+//------- 
+ 
+
   return (
     <View>
       {isShowingResults && (
         <FlatList
-          data={searchResults}
-          renderItem={myRenderItem}
+          data={options}
+          renderItem={myRender}
           keyExtractor={item => item.id}
           style={Styles.searchResultsContainer}
         />
@@ -131,7 +191,6 @@ const Styles = StyleSheet.create({
   },
   searchResultsContainer: {
     width: 340,
-    //height: 200,
     backgroundColor: '#fff',
     position: 'absolute',
     top: 50,
@@ -145,6 +204,14 @@ const Styles = StyleSheet.create({
     borderBottomWidth: 1,
     backgroundColor: 'white',
     paddingLeft: 15,
+  },
+  categoryLabel: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    height: 25,
+    paddingLeft: 15,
+    backgroundColor: '#5AF8EE',
+    alignItems: 'center',
   },
   searchBox: {
     width: 340,
