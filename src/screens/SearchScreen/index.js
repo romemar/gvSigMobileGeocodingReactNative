@@ -18,7 +18,8 @@ const Styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'lightgrey',
-    alignItems: 'center',
+    justifyContent:'flex-start',
+    //alignItems: 'center',
   },
 });
 
